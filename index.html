@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cape Town · 开普敦旅行地图</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#080808;--bg2:#0e0e0e;--bg4:#1a1a1a;--b:rgba(255,255,255,.07);--b2:rgba(255,255,255,.12);--t:#f0ede6;--t2:#888;--t3:#555;--t4:#333;--gold:#c9a96e;--green:#6eab7a;--blue:#7eb0d4;--orange:#e2a96e}
+body{font-family:'DM Sans',-apple-system,'PingFang SC',sans-serif;background:var(--bg);color:var(--t);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.hd{height:54px;display:flex;align-items:center;padding:0 16px;gap:10px;border-bottom:1px solid var(--b);background:rgba(8,8,8,.97);flex-shrink:0;z-index:900}
+.logo{font-family:'Playfair Display',serif;font-style:italic;font-size:16px;white-space:nowrap}
+.dot{width:4px;height:4px;border-radius:50%;background:var(--b2);flex-shrink:0}
+.tag{font-size:10px;color:var(--gold);border:1px solid rgba(201,169,110,.25);border-radius:4px;padding:3px 8px;letter-spacing:.06em;white-space:nowrap}
+.sw{flex:1;max-width:290px;position:relative}
+.si{width:100%;height:34px;background:rgba(255,255,255,.05);border:1px solid var(--b2);border-radius:8px;padding:0 32px;font-size:13px;color:var(--t);font-family:inherit;outline:none;transition:all .2s}
+.si::placeholder{color:var(--t3)}.si:focus{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
+.sic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:14px;pointer-events:none}
+.sclr{position:absolute;right:9px;top:50%;transform:translateY(-50%);display:none;background:none;border:none;font-size:15px;color:var(--t3);cursor:pointer}
+.sr{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--bg2);border:1px solid var(--b2);border-radius:10px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.7);display:none;z-index:1000;max-height:280px;overflow-y:auto}
+.sr.show{display:block}.srhd{padding:8px 14px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);border-bottom:1px solid var(--b)}
+.sri{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(255,255,255,.04)}
+.sri:last-child{border:none}.sri:hover{background:rgba(255,255,255,.04)}
+.sri-n{font-size:13px;color:var(--t);font-weight:500}.sri-s{font-size:11px;color:var(--t3)}
+.sri-b{font-size:10px;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.sempty{padding:14px;font-size:13px;color:var(--t3);text-align:center}
+.hdr{display:flex;align-items:center;gap:7px;margin-left:auto;flex-shrink:0}
+.layers{display:flex;gap:2px;background:rgba(255,255,255,.04);border:1px solid var(--b);border-radius:8px;padding:3px}
+.lb{padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;border:none;background:transparent;color:var(--t3);font-family:inherit;transition:all .2s;white-space:nowrap}
+.lb:hover{color:var(--t2)}.lb.on{background:rgba(255,255,255,.09);color:var(--t)}
+.lb.safeb{color:rgba(192,57,43,.7)}.lb.safeb.on{background:rgba(192,57,43,.15);color:#e74c3c}
+.lb.wineb{color:rgba(155,89,182,.8)}.lb.wineb.on{background:rgba(155,89,182,.15);color:#b07ab5}
+.rbtn{padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid rgba(201,169,110,.3);background:rgba(201,169,110,.08);color:var(--gold);font-family:inherit;transition:all .2s;white-space:nowrap}
+.rbtn:hover{background:rgba(201,169,110,.15)}.rbtn.on{background:var(--gold);color:#080808}
+.body{display:flex;flex:1;overflow:hidden;position:relative}
+#mapWrap{flex:1;position:relative;z-index:1}
+#lmap{width:100%;height:100%}
+/* Dark Leaflet theme */
+.leaflet-container{background:#0b1219}
+.leaflet-control-zoom{border:1px solid var(--b2)!important;border-radius:8px!important;overflow:hidden;margin-bottom:16px!important;margin-right:16px!important}
+.leaflet-control-zoom-in,.leaflet-control-zoom-out{background:rgba(10,10,10,.92)!important;color:var(--t2)!important;border:none!important;border-bottom:1px solid var(--b)!important;font-size:16px!important;width:32px!important;height:32px!important;line-height:32px!important;transition:all .15s!important;font-weight:300!important}
+.leaflet-control-zoom-in:hover,.leaflet-control-zoom-out:hover{background:rgba(30,30,30,.95)!important;color:var(--t)!important}
+.leaflet-control-zoom-out{border-bottom:none!important}
+.leaflet-control-attribution{display:none!important}
+/* Custom marker styles */
+.sp-dot{border-radius:50%;border:2.5px solid #050505;transition:all .2s;cursor:pointer}
+.sp-dot:hover,.sp-dot.active{transform:scale(1.25)}
+.sp-must-ring{position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid #050505}
+.wm-ico{border-radius:50%;border:2px solid #050505;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;font-size:11px}
+.wm-ico:hover{transform:scale(1.2)}
+/* Loading overlay */
+#mapMsg{position:absolute;inset:0;background:rgba(8,8,8,.85);z-index:10;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:30px}
+#mapMsg.show{display:flex}
+/* Route result panel */
+#rpPanel{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(10,10,10,.95);border:1px solid var(--b2);border-radius:12px;padding:14px 18px;z-index:650;display:none;backdrop-filter:blur(12px);min-width:320px;max-width:480px}
+#rpPanel.show{display:block}
+.rpp-row1{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.rpp-a{font-size:12px;font-weight:500;color:var(--green)}.rpp-b{font-size:12px;font-weight:500;color:var(--orange)}
+.rpp-arrow{font-size:13px;color:var(--t4);flex:1;text-align:center}
+.rpp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+.rpp-s{background:rgba(255,255,255,.04);border-radius:7px;padding:8px 10px;text-align:center}
+.rpp-sl{font-size:9px;color:var(--t4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+.rpp-sv{font-size:14px;font-weight:500;color:var(--t)}
+.rpp-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rpp-hint{font-size:10px;color:var(--t4);font-style:italic}
+.rpp-clr{padding:4px 10px;border-radius:5px;font-size:10px;cursor:pointer;border:1px solid var(--b);background:transparent;color:var(--t3);font-family:inherit}
+.rpp-clr:hover{color:var(--t)}
+/* Drawer */
+.drawer{position:absolute;top:0;right:0;height:100%;width:320px;background:var(--bg2);border-left:1px solid var(--b);z-index:700;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden}
+.drawer.open{transform:translateX(0)}.dc{position:absolute;top:13px;right:14px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.06);border:none;color:var(--t2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.dt{padding:20px 20px 0}.df{display:none;font-size:10px;padding:3px 9px;border-radius:4px;letter-spacing:.06em;margin-bottom:10px}
+.dcat{font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.dname{font-family:'Playfair Display',serif;font-size:21px;line-height:1.2;margin-bottom:3px}.dsub{font-size:12px;color:var(--t3);margin-bottom:14px}
+.dhr{height:1px;background:var(--b);margin:0 20px}.droute{padding:16px 20px 12px}.drl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--t4);margin-bottom:12px}
+.tl{display:flex;align-items:center}.tln{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}.tldot{width:8px;height:8px;border-radius:50%;border:2px solid}
+.tlt{font-size:10px;color:var(--t3);white-space:nowrap}.tlv{font-size:13px;font-weight:500;color:var(--t);white-space:nowrap;margin-top:1px}
+.tll{flex:1;height:1px;border-top:1px dashed rgba(255,255,255,.1);margin-bottom:12px}
+.dstats{padding:0 20px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:rgba(255,255,255,.03);border:1px solid var(--b);border-radius:8px;padding:10px}
+.statl{font-size:10px;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.statv{font-size:16px;font-weight:500;color:var(--t);line-height:1}.statu{font-size:11px;color:var(--t3);margin-top:2px}
+.dnote{padding:0 20px 12px}.dnotebox{background:rgba(255,255,255,.03);border:1px solid var(--b);border-radius:8px;padding:12px;font-size:12px;color:var(--t2);line-height:1.65;white-space:pre-line;max-height:190px;overflow-y:auto}
+.dnotebox::-webkit-scrollbar{width:3px}.dnotebox::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.d-actions{padding:0 20px 16px;display:flex;flex-direction:column;gap:8px}
+.d-web{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid var(--b);background:rgba(255,255,255,.03);text-decoration:none;color:var(--t2);font-size:12px;transition:all .15s}
+.d-web:hover{border-color:var(--b2);color:var(--t)}
+.d-rp-row{display:flex;gap:8px}
+.d-rp-a,.d-rp-b{flex:1;padding:7px;border-radius:7px;font-size:11px;cursor:pointer;border:1px solid var(--b);background:transparent;font-family:inherit;transition:all .2s}
+.d-rp-a{color:var(--green);border-color:rgba(110,171,122,.3)}.d-rp-a:hover,.d-rp-a.active{background:rgba(110,171,122,.15)}
+.d-rp-b{color:var(--orange);border-color:rgba(226,169,110,.3)}.d-rp-b:hover,.d-rp-b.active{background:rgba(226,169,110,.15)}
+/* Side panels */
+.rpanel{position:absolute;top:0;right:0;height:100%;width:300px;background:var(--bg2);border-left:1px solid var(--b);z-index:600;display:none;flex-direction:column;overflow-y:auto}
+.rpanel.show{display:flex}.rpanel::-webkit-scrollbar{width:4px}.rpanel::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.rp-sticky{position:sticky;top:0;background:var(--bg2);border-bottom:1px solid var(--b);padding:18px 18px 14px;z-index:1}
+.rp-h{font-family:'Playfair Display',serif;font-size:17px;margin-bottom:2px}.rp-s{font-size:11px;color:var(--t3)}
+.rp-scroll{padding:16px}.rpsec{margin-bottom:20px}.rpl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);margin-bottom:10px}
+.cal{display:flex;flex-direction:column;gap:5px}
+.cday{background:rgba(255,255,255,.03);border:1px solid var(--b);border-radius:9px;padding:10px 12px}
+.cday.rain{border-color:rgba(126,176,212,.2)}.cday.good{border-color:rgba(110,171,122,.2)}
+.cday-top{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.cday-date{font-size:11px;font-weight:500}.cday-day{font-size:10px;color:var(--t3)}.cday-desc{font-size:11px;color:var(--t2);flex:1}.cday-temp{font-size:11px;color:var(--t2);white-space:nowrap}
+.cbadge{display:inline-block;font-size:9px;padding:1px 6px;border-radius:3px;margin-right:4px;margin-bottom:3px}
+.cday-note{font-size:10px;color:var(--t3);line-height:1.5}
+.sg2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sc{background:rgba(255,255,255,.03);border:1px solid var(--b);border-radius:8px;padding:10px}
+.scn{font-size:11px;color:var(--t2);margin-bottom:4px}.sct{font-size:14px;font-weight:500;margin-bottom:5px}
+.scb{height:3px;border-radius:2px;margin-bottom:5px}.sctags{display:flex;flex-wrap:wrap;gap:3px}
+.sctag{font-size:9px;padding:2px 6px;border-radius:3px}
+.et{width:100%;border-collapse:collapse}.et tr{border-bottom:1px solid rgba(255,255,255,.05)}.et td{padding:6px 0;font-size:12px}
+.et td:first-child{color:var(--t2)}.et td:last-child{text-align:right;color:var(--gold);font-weight:500}
+.wm-card{background:rgba(255,255,255,.03);border:1px solid var(--b);border-radius:9px;padding:11px;margin-bottom:7px;cursor:pointer;transition:border-color .15s}
+.wm-card:hover{border-color:var(--b2)}.wm-ct{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.wm-ico2{font-size:17px;flex-shrink:0}.wm-nm{font-size:13px;font-weight:500;color:var(--t);flex:1}
+.wm-tp{font-size:10px;padding:2px 6px;border-radius:4px}
+.wm-desc{font-size:11px;color:var(--t3);line-height:1.5;margin-bottom:5px}
+.wm-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.wm-hrs{font-size:10px;color:var(--t4)}.wm-we{font-size:10px;color:var(--blue);text-decoration:none}
+.sl-item{display:flex;align-items:flex-start;gap:9px;padding:7px;border-radius:8px}
+.sl-dot{width:13px;height:13px;border-radius:3px;flex-shrink:0;margin-top:2px}
+.sl-nm{font-size:12px;font-weight:500;color:var(--t);margin-bottom:2px}.sl-nt{font-size:11px;color:var(--t3);line-height:1.5}
+.safe-tip{background:rgba(255,255,255,.03);border:1px solid var(--b);border-radius:8px;padding:10px;font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:7px}
+.emer{display:flex;gap:7px;margin-top:10px}
+.emer-item{flex:1;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.2);border-radius:8px;padding:9px;text-align:center}
+.emer-num{font-size:17px;font-weight:500;color:#e74c3c;margin-bottom:2px}.emer-l{font-size:9px;color:var(--t3)}
+.rl{position:absolute;bottom:72px;left:50%;transform:translateX(-50%);background:rgba(10,10,10,.95);border:1px solid var(--b2);border-radius:10px;padding:13px 16px;z-index:650;display:none;backdrop-filter:blur(12px);min-width:max-content}
+.rl.show{display:block}.rlt{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.rlstops{display:flex;align-items:center}.rlstop{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.rlnum{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500}
+.rlname{font-size:11px;color:var(--t2)}.rlarr{font-size:11px;color:var(--t4);margin:0 3px}
+.rlfoot{margin-top:8px;padding-top:8px;border-top:1px solid var(--b);font-size:11px;color:var(--t3);display:flex;justify-content:space-between;gap:18px}
+.rlfoot b{color:var(--t);font-weight:500}
+.ro{position:fixed;inset:0;background:var(--bg);z-index:1000;display:none;flex-direction:column;overflow:hidden}
+.ro.show{display:flex}.rohd{height:54px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--b);flex-shrink:0;gap:16px}
+.robk{display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--t3);font-size:13px;border:none;background:none;font-family:inherit;transition:color .15s}
+.robk:hover{color:var(--t)}.roht{font-family:'Playfair Display',serif;font-style:italic;font-size:18px}.rohs{font-size:11px;color:var(--t3)}
+.rof{display:flex;gap:6px;margin-left:auto}
+.rf{padding:5px 11px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid var(--b);background:transparent;color:var(--t3);font-family:inherit;transition:all .15s;white-space:nowrap}
+.rf:hover{border-color:var(--b2);color:var(--t2)}.rf.on{background:rgba(255,255,255,.08);color:var(--t);border-color:var(--b2)}
+.rob2{flex:1;overflow-y:auto;padding:24px}.rob2::-webkit-scrollbar{width:4px}.rob2::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.rsec{margin-bottom:32px}.rseclbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--t4);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.rseclbl::after{content:'';flex:1;height:1px;background:var(--b)}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.rcard{background:var(--bg2);border:1px solid var(--b);border-radius:14px;overflow:hidden;transition:border-color .2s;display:flex;flex-direction:column}
+.rcard:hover{border-color:var(--b2)}.rctop{height:5px}.rcbody{padding:16px;flex:1}
+.rcrow1{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.rcicon{font-size:22px;flex-shrink:0;margin-top:2px}.rcname{font-size:14px;font-weight:500;color:var(--t);margin-bottom:2px}.rcsub{font-size:11px;color:var(--t3)}
+.rcmust{font-size:10px;padding:2px 7px;border-radius:4px;flex-shrink:0;margin-top:3px;font-weight:500}
+.rcwhy{font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:10px}
+.rctags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}.rctag{font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,.05);color:var(--t3)}
+.rctip{font-size:11px;color:#666;line-height:1.6;background:rgba(255,255,255,.03);border-radius:6px;padding:9px;margin-bottom:8px}
+.rcmeta{display:flex;gap:12px;padding-top:10px;border-top:1px solid var(--b)}.rcmi{display:flex;flex-direction:column;gap:2px}
+.rcml{font-size:9px;color:var(--t4);letter-spacing:.08em;text-transform:uppercase}.rcmv{font-size:12px;color:var(--t)}
+.rcfoot{padding:0 16px 14px;display:flex;gap:8px}
+.rcmbtn{flex:1;padding:7px;border-radius:7px;font-size:11px;cursor:pointer;border:1px solid var(--b2);background:rgba(255,255,255,.04);color:var(--t2);font-family:inherit;transition:all .15s}
+.rcmbtn:hover{background:rgba(255,255,255,.08);color:var(--t)}
+.rcext{padding:7px 11px;border-radius:7px;font-size:11px;border:1px solid var(--b);background:transparent;color:var(--t3);text-decoration:none;display:flex;align-items:center;transition:color .15s}
+.rcext:hover{color:var(--t2)}
+@media(max-width:660px){
+  .drawer,.rpanel{width:100%;height:62%;top:auto;bottom:0;transform:translateY(100%);border-left:none;border-top:1px solid var(--b);border-radius:14px 14px 0 0}
+  .drawer.open,.rpanel.show{transform:none}
+  .dot,.tag{display:none}.sw{max-width:120px}.rof{display:none}.rgrid{grid-template-columns:1fr}
+  .lb{padding:4px 6px;font-size:10px}
+}
+</style>
+</head>
+<body>
+<header class="hd">
+  <span class="logo">Cape Town</span>
+  <div class="dot"></div>
+  <div class="tag">🏨 Jun 3–11</div>
+  <div class="sw">
+    <span class="sic">⌕</span>
+    <input class="si" id="si" type="text" placeholder="搜索景点、安全、酒庄…" autocomplete="off">
+    <button class="sclr" id="sclr" onclick="clrS()">×</button>
+    <div class="sr" id="sr"></div>
+  </div>
+  <div class="hdr">
+    <div class="layers">
+      <button class="lb on" id="b0" onclick="setLayer(0)">暗色</button>
+      <button class="lb" id="b1" onclick="setLayer(1)">地形</button>
+      <button class="lb" id="b2" onclick="setLayer(2)">卫星</button>
+      <button class="lb safeb" id="b3" onclick="setLayer(3)">🛡 安全</button>
+      <button class="lb wineb" id="b4" onclick="setLayer(4)">🍷 酒庄</button>
+    </div>
+    <button class="rbtn" id="rbtn" onclick="togRec()">✦ 推荐</button>
+  </div>
+</header>
+
+<div class="body">
+<div id="mapWrap">
+  <div id="lmap"></div>
+  <!-- Fallback when Leaflet/tiles unavailable -->
+  <div id="mapMsg">
+    <div style="font-size:40px">🗺</div>
+    <div style="font-size:16px;font-weight:500;margin-bottom:8px">地图加载中…</div>
+    <div style="font-size:13px;color:var(--t3);max-width:280px">在 GitHub Pages 部署后可查看完整街道/地形/卫星地图。景点、安全、路线等功能正常工作。</div>
+  </div>
+  <!-- Route result panel -->
+  <div id="rpPanel">
+    <div class="rpp-row1">
+      <span class="rpp-a">🟢 <span id="rpANm">—</span></span>
+      <span class="rpp-arrow">──→──</span>
+      <span class="rpp-b">🟠 <span id="rpBNm">—</span></span>
+    </div>
+    <div class="rpp-grid">
+      <div class="rpp-s"><div class="rpp-sl">🚗 Uber 约</div><div class="rpp-sv" id="rpDrT">—</div></div>
+      <div class="rpp-s"><div class="rpp-sl">📏 距离</div><div class="rpp-sv" id="rpDistV">—</div></div>
+      <div class="rpp-s"><div class="rpp-sl">💰 费用估算</div><div class="rpp-sv" id="rpCostV">—</div></div>
+    </div>
+    <div class="rpp-foot"><span class="rpp-hint" id="rpWalkT"></span><button class="rpp-clr" onclick="clearRp()">× 清除路线</button></div>
+  </div>
+  <!-- Route legend -->
+  <div class="rl" id="rl">
+    <div class="rlt">推荐半岛环线 · 全天路线</div>
+    <div class="rlstops" id="rlstops"></div>
+    <div class="rlfoot"><span>总驾车约 <b>200 km</b></span><span>建议出发 <b>08:00</b></span></div>
+  </div>
+</div>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer">
+  <button class="dc" onclick="closeDr()">×</button>
+  <div class="dt"><div class="df" id="df"></div><div class="dcat" id="dcat"></div><div class="dname" id="dname"></div><div class="dsub" id="dsub"></div></div>
+  <div class="dhr"></div>
+  <div class="droute">
+    <div class="drl">从 Westin 出发</div>
+    <div class="tl">
+      <div class="tln"><div class="tldot" style="border-color:var(--gold);background:rgba(201,169,110,.2)"></div><div class="tlt">出发</div></div>
+      <div class="tll"></div>
+      <div class="tln"><div class="tldot" id="dd1"></div><div class="tlt">打车</div><div class="tlv" id="ddrv"></div></div>
+      <div class="tll" style="flex:2"></div>
+      <div class="tln"><div class="tldot" id="dd2"></div><div class="tlt">游览</div><div class="tlv" id="dsta"></div></div>
+      <div class="tll"></div>
+      <div class="tln"><div class="tldot" style="border-color:var(--gold);background:rgba(201,169,110,.2)"></div><div class="tlt">返回</div></div>
+    </div>
+  </div>
+  <div class="dstats">
+    <div class="stat"><div class="statl">距离</div><div class="statv" id="ddist">—</div><div class="statu">km 单程</div></div>
+    <div class="stat"><div class="statl">建议时段</div><div class="statv" id="dbest" style="font-size:13px">—</div></div>
+  </div>
+  <div class="dnote"><div class="dnotebox" id="dnote"></div></div>
+  <div class="d-actions">
+    <a class="d-web" id="dWeb" href="#" target="_blank" style="display:none">🌐 <span id="dWebLbl">官网</span> ↗</a>
+    <div style="font-size:10px;color:var(--t4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">📍 路线安排</div>
+    <div class="d-rp-row">
+      <button class="d-rp-a" id="rpABtn" onclick="setRpA()">A 设为起点</button>
+      <button class="d-rp-b" id="rpBBtn" onclick="setRpB()">B 设为终点</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLIMATE PANEL -->
+<div class="rpanel" id="climate">
+  <div class="rp-sticky"><div class="rp-h">地形 & 行程日历</div><div class="rp-s">开普敦 Jun 3–11 · 日落 17:43–17:44</div></div>
+  <div class="rp-scroll">
+    <div class="rpsec"><div class="rpl">每日日出日落</div><div class="cal" id="calGrid"></div></div>
+    <div class="rpsec">
+      <div class="rpl">⚠ 6月出行提示</div>
+      <div style="background:rgba(201,169,110,.06);border:1px solid rgba(201,169,110,.2);border-radius:8px;padding:12px;font-size:12px;color:var(--t2);line-height:1.75">
+        🌅 <strong style="color:var(--orange)">日落仅 17:43</strong>，所有户外活动须在 17:15 前完成<br>
+        🏔 桌山缆车6月频繁停运，查 <span style="color:var(--gold)">tablemountain.net</span><br>
+        🐳 <strong style="color:var(--green)">南露脊鲸高峰季</strong>！Creation Wines + Hermanus 一天<br>
+        🌧 6月最多雨，备好防水外套
+      </div>
+    </div>
+    <div class="rpsec">
+      <div class="rpl">6月气候</div>
+      <div class="sg2">
+        <div class="sc"><div class="scn">🌡 白天高温</div><div class="sct">17–18°C</div><div class="scb" style="background:linear-gradient(90deg,var(--blue),var(--green));width:55%"></div><div class="sctags"><span class="sctag" style="background:rgba(126,176,212,.15);color:var(--blue)">南半球冬季</span></div></div>
+        <div class="sc"><div class="scn">🌧 月均降雨</div><div class="sct">~90 mm</div><div class="scb" style="background:linear-gradient(90deg,var(--blue),#4477aa);width:80%"></div><div class="sctags"><span class="sctag" style="background:rgba(126,176,212,.15);color:var(--blue)">全年最多</span></div></div>
+        <div class="sc"><div class="scn">☀ 日照</div><div class="sct">~6h/天</div><div class="scb" style="background:linear-gradient(90deg,var(--gold),#777);width:38%"></div></div>
+        <div class="sc"><div class="scn">🌊 海温</div><div class="sct">15–16°C</div><div class="scb" style="background:linear-gradient(90deg,var(--blue),#335);width:30%"></div><div class="sctags"><span class="sctag" style="background:rgba(255,255,255,.05);color:#888">不宜游泳</span></div></div>
+      </div>
+    </div>
+    <div class="rpsec">
+      <div class="rpl">主要景点海拔</div>
+      <table class="et"><tr><td>桌山 Table Mountain</td><td>1,085 m</td></tr><tr><td>Lion's Head</td><td>669 m</td></tr><tr><td>Chapman's Peak</td><td>593 m</td></tr><tr><td>Signal Hill</td><td>350 m</td></tr><tr><td>好望角灯塔</td><td>249 m</td></tr><tr><td>Creation Wines</td><td>~280 m</td></tr></table>
+    </div>
+  </div>
+</div>
+
+<!-- SAFETY PANEL -->
+<div class="rpanel" id="safePanel">
+  <div class="rp-sticky"><div class="rp-h" style="color:#e74c3c">🛡 开普敦安全指南</div><div class="rp-s">红色区域避免进入 · 旅游者须知</div></div>
+  <div class="rp-scroll">
+    <div class="rpsec">
+      <div class="rpl">风险等级</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:13px;height:13px;border-radius:3px;background:rgba(192,57,43,.7);flex-shrink:0"></div><span style="font-size:12px;color:var(--t2)"><strong style="color:var(--t)">极高风险</strong> — 帮派控制区，绝对不进入</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:13px;height:13px;border-radius:3px;background:rgba(230,126,34,.6);flex-shrink:0"></div><span style="font-size:12px;color:var(--t2)"><strong style="color:var(--t)">高风险</strong> — 有导游陪同才可进入</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:13px;height:13px;border-radius:3px;background:rgba(241,196,15,.6);clip-path:polygon(50% 0%,0% 100%,100% 100%);flex-shrink:0"></div><span style="font-size:12px;color:var(--t2)"><strong style="color:var(--t)">注意</strong> — 保管好随身物品</span></div>
+      </div>
+    </div>
+    <div class="rpsec"><div class="rpl">危险区域</div><div id="safeList"></div></div>
+    <div class="rpsec">
+      <div class="rpl">旅游者安全守则</div>
+      <div class="safe-tip">🚕 <strong>只用 Uber / Bolt</strong>，不坐路边出租车，不坐小型巴士</div>
+      <div class="safe-tip">🚗 红灯时锁好车门，不开车窗，特别是 N2 高速沿途</div>
+      <div class="safe-tip">👜 不戴昂贵首饰，不在公开场合使用高档手机</div>
+      <div class="safe-tip">🌙 夜间活动：V&A、De Waterkant、Camps Bay 相对安全</div>
+      <div class="safe-tip">🏔 桌山徒步：不要单独爬山，建议有证导游或团体</div>
+      <div class="emer"><div class="emer-item"><div class="emer-num">10111</div><div class="emer-l">警察</div></div><div class="emer-item"><div class="emer-num">10177</div><div class="emer-l">救护车</div></div><div class="emer-item"><div class="emer-num">107</div><div class="emer-l">城市紧急</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- WINE PANEL -->
+<div class="rpanel" id="winePanel">
+  <div class="rp-sticky"><div class="rp-h" style="color:#b07ab5">🍷 酒庄 & 市集</div><div class="rp-s">Constantia · Stellenbosch · Cape Town</div></div>
+  <div class="rp-scroll">
+    <div class="rpsec"><div class="rpl">Constantia Valley（近市区 15–30 分）</div><div id="wineConstantia"></div></div>
+    <div class="rpsec"><div class="rpl">Stellenbosch / Somerset West（45–60 分）</div><div id="wineStellenbosch"></div></div>
+    <div class="rpsec"><div class="rpl">🛒 市集 Markets</div><div id="marketsList"></div></div>
+    <div class="rpsec">
+      <div class="rpl">6月酒庄小贴士</div>
+      <div style="background:rgba(155,89,182,.06);border:1px solid rgba(155,89,182,.2);border-radius:8px;padding:12px;font-size:12px;color:var(--t2);line-height:1.75">🍷 Constantia 可步行在多家之间穿梭<br>🚗 Stellenbosch 需指定司机<br>📅 6月人少，无需提前预订<br>🐳 Creation Wines → Hermanus 看鲸最佳组合</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- RECOMMENDATIONS -->
+<div class="ro" id="ro">
+  <div class="rohd">
+    <button class="robk" onclick="togRec()">← 返回</button>
+    <div class="dot"></div>
+    <div><div class="roht">推荐 & 日历</div><div class="rohs">精选景点 · 6月行程 · 本地推荐</div></div>
+    <div class="rof" id="rof"></div>
+  </div>
+  <div class="rob2" id="rob2"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── DATA ──
+const CC={city:'#c9a96e',nature:'#6eab7a',peninsula:'#7eb0d4',beach:'#e2a96e',animals:'#c47e7e',market:'#b07ab5'};
+const SP=[
+  {id:0,name:'The Watershed',sub:'V&A 市集',cat:'市区',ck:'city',icon:'🛍️',lat:-33.9070,lng:18.4185,drive:'步行 15 分',dist:'1.2',stay:'2–3 小时',must:true,best:'10:00–18:00',web:'https://waterfront.co.za/explore/watershed/',note:'本地设计师、非洲手工艺品、街头美食一站式。每天 10am–7pm，从酒店步行即到。'},
+  {id:1,name:'City Sightseeing',sub:'观光大巴 · 3条路线',cat:'市区',ck:'city',icon:'🚌',lat:-33.9076,lng:18.4175,drive:'步行 15 分',dist:'1.2',stay:'2–3 小时',must:false,best:'09:00–16:00',web:'https://citysightseeing.co.za/en/cape-town',note:`主站：Two Oceans Aquarium门外, Dock Rd, V&A Waterfront
+副站：81 Long Street, CBD
+票价：R299/人/天 · 首班09:00 · 每15–20分一班
+
+🔴 Red Route（城市环线）:
+① V&A Waterfront 主站发车
+② Long Street / Strand St（CBD）
+③ Bo-Kaap 彩色街区
+④ Table Mountain Cableway 桌山站
+⑤ Signal Hill 信号山
+⑥ Green Point / Sea Point 海岸
+
+🔵 Blue Mini Peninsula Tour:
+① V&A → ③ Sea Point → ⑤ Camps Bay
+→ ⑥ Hout Bay 豪特湾 → ⑦ World of Birds
+→ ⑧ Kirstenbosch 植物园
+
+🟣 Purple Wine Route:
+→ Groot Constantia → Eagles' Nest → Beau Constantia
+
+💡 6月建议：先 Red Route 游市区，再 Blue Route 到 Kirstenbosch`},
+  {id:2,name:'Table Mountain',sub:'桌山缆车',cat:'自然',ck:'nature',icon:'🏔️',lat:-33.9556,lng:18.4034,drive:'约 15 分',dist:'5',stay:'2–3 小时',must:true,best:'08:30–14:00',web:'https://www.tablemountain.net',note:'⚠️ 6月大风/雾频繁关闭！出发前必查官网 tablemountain.net。缆车站：Tafelberg Road。成人约R440，网上购票跳过排队。日落17:43，须14点前上山。'},
+  {id:3,name:'Kirstenbosch',sub:'国家植物园',cat:'自然',ck:'nature',icon:'🌿',lat:-33.9875,lng:18.4327,drive:'约 25 分',dist:'14',stay:'2–3 小时',must:true,best:'09:00–13:00',web:'https://www.sanbi.org/gardens/kirstenbosch/',note:'冬季绿意葱郁，游客极少。Boomslang 树冠步道俯瞰桌山，可在草坪野餐。成人约R220，8am–7pm。'},
+  {id:4,name:'Signal Hill',sub:'信号山日落',cat:'自然',ck:'nature',icon:'🌅',lat:-33.9299,lng:18.3981,drive:'约 15 分',dist:'7',stay:'约 1 小时',must:false,best:'17:00–17:43',web:null,note:'6月日落仅 17:43！须17:00-17:15抵达。免费，Uber上车点：High Level Road。俯瞰全城最美。'},
+  {id:5,name:"Chapman's Peak",sub:'景观海岸公路',cat:'自然',ck:'nature',icon:'🛣️',lat:-34.0497,lng:18.3624,drive:'约 35 分',dist:'26',stay:'约 45 分',must:false,best:'10:00–15:00',web:'https://www.chapmanspeakdrive.co.za',note:'半岛环线必经，沿途11个停车观景点，收费约R66双程。6月风大，驾车注意侧风。'},
+  {id:6,name:'Boulders Beach',sub:'非洲企鹅聚居地',cat:'半岛',ck:'peninsula',icon:'🐧',lat:-34.1956,lng:18.4504,drive:'约 50 分',dist:'46',stay:'1.5–2 小时',must:true,best:'08:00–11:00',web:'https://www.sanparks.org/parks/table_mountain/tourism/boulders.php',note:'野生非洲企鹅！6月寒凉企鹅更活跃。成人约R222，8am–6pm。建议与好望角同天出行。'},
+  {id:7,name:'Cape Point',sub:'好望角自然保护区',cat:'半岛',ck:'peninsula',icon:'⛰️',lat:-34.3508,lng:18.4846,drive:'约 65 分',dist:'70',stay:'2–3 小时',must:true,best:'10:00–15:00',web:'https://www.sanparks.org/parks/table_mountain/',note:'两大洋交汇地标。6月人少天清。缆车约R95，有野生鸵鸟和狒狒，须15点前离开。'},
+  {id:8,name:'Camps Bay',sub:'网红海滩',cat:'海滩',ck:'beach',icon:'🏖️',lat:-33.9495,lng:18.3770,drive:'约 20 分',dist:'11',stay:'约 1 小时',must:false,best:'14:00–17:00',web:null,note:'6月海温15°C不宜游泳，但冬日清冷海景极美。傍晚海岸餐厅气氛好，Chapman\'s Peak 顺路停留。'},
+  {id:9,name:'Exotic Animal World',sub:'异国动物园',cat:'酒庄 & 动物',ck:'animals',icon:'🦒',lat:-33.8002,lng:18.8724,drive:'约 50 分',dist:'52',stay:'2–3 小时',must:false,best:'09:00–12:00',web:'https://www.exoticanimalworld.co.za',note:'长颈鹿、狐猴、各类鸟类。Stellenbosch R44 沿途，去 Creation 酒庄路上顺访。'},
+  {id:10,name:'Creation Wines',sub:'Hermanus 顶级酒庄 + 赏鲸',cat:'酒庄',ck:'animals',icon:'🍷',lat:-34.3313,lng:19.3268,drive:'约 1h 45min',dist:'120',stay:'3–4 小时',must:true,best:'11:00–15:00',web:'https://www.creationwines.com',note:'⚠️ 必须提前预订。6月是 Hermanus 南露脊鲸高峰季！品酒后在 Cliff Path 免费看鲸，须15:30前离开。'},
+  {id:11,name:'OZCF 市集',sub:'Oranjezicht City Farm Market',cat:'市集',ck:'market',icon:'🥦',lat:-33.9032,lng:18.4201,drive:'步行 18 分',dist:'1.5',stay:'1.5–2 小时',must:true,best:'Sat 08:00–14:30 / Sun 08:30',web:'https://ozcf.co.za/ozcfmarket/',note:'6月开放：周六 08:00–14:30，周日 08:30–14:30。⚠️ 6月夜市停办。6/7(周六) 和 6/8(周日) 均开放。V&A Waterfront 新木棚，40+农户 80家手工食品摊。'},
+];
+const DZONES=[
+  {name:'Khayelitsha',risk:3,pts:[[-33.93,18.62],[-33.93,18.81],[-34.16,18.81],[-34.16,18.62]],note:'南非犯罪率最高区域，旅游者绝对不进入'},
+  {name:"Mitchell's Plain",risk:3,pts:[[-33.99,18.55],[-33.99,18.73],[-34.12,18.73],[-34.12,18.55]],note:'大型帮派区域，游客务必绕道'},
+  {name:'Gugulethu / Nyanga',risk:3,pts:[[-33.96,18.53],[-33.96,18.65],[-34.06,18.65],[-34.06,18.53]],note:'暴力犯罪高发，不要穿越'},
+  {name:'Manenberg / Hanover Park',risk:3,pts:[[-33.98,18.53],[-33.98,18.64],[-34.05,18.64],[-34.05,18.53]],note:'帮派控制区域，白天也极度危险'},
+  {name:'Lavender Hill',risk:3,pts:[[-34.06,18.43],[-34.06,18.57],[-34.11,18.57],[-34.11,18.43]],note:'南部帮派地带，驾车避开'},
+  {name:'Langa',risk:2,pts:[[-33.93,18.51],[-33.93,18.57],[-33.97,18.57],[-33.97,18.51]],note:'有导游可访，单独前往需谨慎'},
+  {name:'Cape Flats',risk:2,pts:[[-33.93,18.57],[-33.93,18.81],[-33.99,18.81],[-33.99,18.57]],note:'N2 途经，注意砸窗抢劫'},
+  {name:'Salt River / Woodstock',risk:2,pts:[[-33.93,18.47],[-33.93,18.53],[-33.97,18.53],[-33.97,18.47]],note:'正在绅士化，夜间风险仍高'},
+  {name:'CBD 火车站周边',risk:2,pts:[[-33.92,18.43],[-33.92,18.48],[-33.94,18.48],[-33.94,18.43]],note:'扒手活跃，白天也要注意'},
+];
+const DPOINTS=[
+  {name:'Cape Town Station',lat:-33.9247,lng:18.4253,note:'扒手高发，紧握随身物品'},
+  {name:'Greenmarket Square',lat:-33.9241,lng:18.4179,note:'旅游热点，扒包事件多发'},
+  {name:'Long Street 深夜',lat:-33.9230,lng:18.4151,note:'深夜酒吧区，注意安全'},
+  {name:'N2 高速路灯',lat:-33.9380,lng:18.5050,note:'砸车玻璃抢劫多发'},
+  {name:'桌山登山道',lat:-33.955,lng:18.398,note:'单独徒步有遇抢记录'},
+];
+const WINERIES=[
+  {id:'w1',name:'Groot Constantia',type:'winery',lat:-33.9805,lng:18.4378,web:'grootconstantia.co.za',desc:'南非最古老酒庄(1685年)，免费入园，酒窖游R120',hours:'09:00–18:00 daily',dist:'约 20 分',price:'品酒 R120+',group:'constantia'},
+  {id:'w2',name:'Klein Constantia',type:'winery',lat:-33.9820,lng:18.4311,web:'kleinconstantia.com',desc:'顶级甜葡萄酒 Vin de Constance，拿破仑最爱',hours:'09:00–17:00 daily',dist:'约 20 分',price:'品酒 R150+',group:'constantia'},
+  {id:'w3',name:'Buitenverwachting',type:'winery',lat:-33.9873,lng:18.4264,web:'buitenverwachting.com',desc:'Constantia 有机酒庄，兼有获奖餐厅',hours:'Mon–Sat 09:00–17:00',dist:'约 22 分',price:'品酒 R150',group:'constantia'},
+  {id:'w4',name:"Eagles' Nest",type:'winery',lat:-33.9958,lng:18.4142,web:'eaglesnestestates.co.za',desc:'Constantia 精品庄，Shiraz 极受推崇',hours:'Mon–Sat 10:00–17:00',dist:'约 25 分',price:'品酒 R120',group:'constantia'},
+  {id:'w5',name:'Steenberg Vineyards',type:'winery',lat:-34.0825,lng:18.4413,web:'steenbergfarm.com',desc:'康斯坦夏精品庄，兼有 Spa 和高尔夫',hours:'09:00–17:00 daily',dist:'约 28 分',price:'品酒 R180',group:'constantia'},
+  {id:'w6',name:'Constantia Glen',type:'winery',lat:-34.0058,lng:18.4120,web:'constantiaglen.com',desc:'精品小庄，Bordeaux 混酿为主，环境优美',hours:'Mon–Sat 09:30–17:00',dist:'约 25 分',price:'品酒 R150',group:'constantia'},
+  {id:'w7',name:'Spier Wine Farm',type:'winery',lat:-33.9703,lng:18.7822,web:'spier.co.za',desc:'Stellenbosch 著名酒庄，有鹰类表演和多个餐厅',hours:'09:00–18:00 daily',dist:'约 45 分',price:'免费入园',group:'stell'},
+  {id:'w8',name:'Jordan Wine Estate',type:'winery',lat:-33.8917,lng:18.8265,web:'jordanwines.com',desc:'获奖精品庄，Restaurant Jordan 极受欢迎',hours:'Mon–Sat 09:30–16:30',dist:'约 45 分',price:'品酒 R150',group:'stell'},
+  {id:'w9',name:'Waterford Estate',type:'winery',lat:-33.9760,lng:18.9490,web:'waterfordestate.co.za',desc:'巧克力 + 葡萄酒配对品鉴著名',hours:'Mon–Sat 09:00–17:00',dist:'约 55 分',price:'配对 R250',group:'stell'},
+  {id:'w10',name:'Vergelegen',type:'winery',lat:-34.0703,lng:18.8942,web:'vergelegen.co.za',desc:'Somerset West 历史名庄(1700年)，花园如画',hours:'09:00–18:00 daily',dist:'约 40 分',price:'入场 R50',group:'stell'},
+];
+const MKTS=[
+  {id:'m1',name:'OZCF Waterfront Market',type:'market',lat:-33.9032,lng:18.4201,web:'ozcf.co.za',desc:'最大农夫市集，V&A 新木棚，40+农户',hours:'Sat 08:00–14:30 · Sun 08:30–14:30',dist:'步行 18 分',price:'免费'},
+  {id:'m2',name:'Old Biscuit Mill',type:'market',lat:-33.9300,lng:18.4701,web:'theoldbiscuitmill.co.za',desc:'Woodstock 创意市集，仅周六',hours:'Sat 09:00–14:00',dist:'约 10 分',price:'免费'},
+  {id:'m3',name:'Bay Harbour Market',type:'market',lat:-34.0472,lng:18.3594,web:'bayharbour.co.za',desc:'Hout Bay 渔港周末市集，海鲜为主',hours:'Fri 17:00–21:00 · Sat-Sun 09:30–16:00',dist:'约 30 分',price:'免费'},
+  {id:'m4',name:'Greenmarket Square',type:'market',lat:-33.9241,lng:18.4179,web:null,desc:'市中心历史广场，纪念品和非洲工艺品',hours:'Mon–Sat 09:00–17:00（好天气）',dist:'步行 10 分',price:'免费'},
+];
+
+// Routes
+const RT={0:[[-33.9157,18.4262],[-33.912,18.423],[-33.9070,18.4185]],1:[[-33.9157,18.4262],[-33.912,18.423],[-33.9076,18.4175]],2:[[-33.9157,18.4262],[-33.930,18.419],[-33.9556,18.4034]],3:[[-33.9157,18.4262],[-33.942,18.433],[-33.9875,18.4327]],4:[[-33.9157,18.4262],[-33.926,18.406],[-33.9299,18.3981]],5:[[-33.9157,18.4262],[-33.930,18.399],[-33.945,18.382],[-33.970,18.369],[-34.0497,18.3624]],6:[[-33.9157,18.4262],[-33.960,18.433],[-33.990,18.440],[-34.090,18.450],[-34.1956,18.4504]],7:[[-33.9157,18.4262],[-33.990,18.440],[-34.090,18.450],[-34.1956,18.4504],[-34.290,18.480],[-34.3508,18.4846]],8:[[-33.9157,18.4262],[-33.928,18.405],[-33.9495,18.3770]],9:[[-33.9157,18.4262],[-33.875,18.500],[-33.850,18.610],[-33.8002,18.8724]],10:[[-33.9157,18.4262],[-33.940,18.432],[-33.980,18.520],[-34.130,18.800],[-34.3313,19.3268]],11:[[-33.9157,18.4262],[-33.912,18.423],[-33.9032,18.4201]]};
+const LOOP=[[-33.9157,18.4262],[-33.975,18.432],[-33.9875,18.4327],[-34.060,18.455],[-34.1956,18.4504],[-34.290,18.480],[-34.3508,18.4846],[-34.300,18.420],[-34.120,18.365],[-34.0497,18.3624],[-33.9495,18.3770],[-33.9299,18.3981],[-33.9157,18.4262]];
+
+// June calendar
+const CAL=[
+  {d:'6/3',wd:'周二',wx:'⛅',desc:'多云偶晴',hi:17,lo:10,rain:35,sr:'07:44',ss:'17:44',badges:[{t:'抵达日',c:'#c9a96e'}],note:'抵达后步行探索 V&A、OZCF 附近'},
+  {d:'6/4',wd:'周三',wx:'🌧',desc:'阴有小雨',hi:16,lo:9,rain:70,sr:'07:45',ss:'17:44',badges:[{t:'夜市停办',c:'#555'}],note:'雨天首选 Bo-Kaap、博物馆、V&A 室内市集'},
+  {d:'6/5',wd:'周四',wx:'⛅',desc:'多云间晴',hi:18,lo:10,rain:40,sr:'07:46',ss:'17:44',badges:[{t:'佳慧中午pre',c:'#7eb0d4'}],note:'佳慧中午 pre → 两人上午都可自由出行！推荐植物园或桌山'},
+  {d:'6/6',wd:'周五',wx:'🌦',desc:'阴有阵雨',hi:15,lo:9,rain:65,sr:'07:46',ss:'17:44',badges:[{t:'GemmaL 中午pre',c:'#7eb0d4'}],note:'GemmaL 中午 pre → 两人上午可出行'},
+  {d:'6/7',wd:'周六',wx:'⛅',desc:'晴转多云',hi:18,lo:11,rain:25,sr:'07:47',ss:'17:43',badges:[{t:'GemmaL 全天pre',c:'#7eb0d4'},{t:'🥦 OZCF 08-14:30',c:'#b07ab5'}],note:'OZCF 市集开放！佳慧独游市集 + Old Biscuit Mill'},
+  {d:'6/8',wd:'周日',wx:'☁️',desc:'多云',hi:17,lo:10,rain:45,sr:'07:48',ss:'17:43',badges:[{t:'GemmaL 上午pre',c:'#7eb0d4'},{t:'🥦 OZCF 08:30',c:'#b07ab5'}],note:'OZCF 市集开放，GemmaL 下午两人可一同逛'},
+  {d:'6/9',wd:'周一',wx:'🌤',desc:'晴间多云',hi:18,lo:11,rain:20,sr:'07:48',ss:'17:43',badges:[{t:'⭐ 最佳出行日',c:'#6eab7a'}],note:'推荐半岛大环线：植物园→企鹅→好望角'},
+  {d:'6/10',wd:'周二',wx:'⛅',desc:'多云间晴',hi:17,lo:10,rain:35,sr:'07:49',ss:'17:43',badges:[{t:'自由日',c:'#6eab7a'}],note:'Creation Wines + Hermanus 赏鲸一日游'},
+  {d:'6/11',wd:'周三',wx:'🌧',desc:'阴有雨',hi:15,lo:9,rain:70,sr:'07:49',ss:'17:43',badges:[{t:'出发日',c:'#c9a96e'}],note:'早晨出发'},
+];
+function buildCal(){
+  const g=document.getElementById('calGrid');g.innerHTML='';
+  CAL.forEach(d=>{
+    const rain=d.rain>=60,good=d.rain<30;
+    const badges=d.badges.map(b=>`<span class="cbadge" style="background:${b.c}22;color:${b.c};border:1px solid ${b.c}33">${b.t}</span>`).join('');
+    g.innerHTML+=`<div class="cday ${rain?'rain':good?'good':''}"><div class="cday-top"><span style="font-size:14px">${d.wx}</span><span class="cday-date">${d.d}</span><span class="cday-day">${d.wd}</span><span class="cday-desc">${d.desc}</span><span class="cday-temp">${d.lo}–${d.hi}°C</span></div><div style="display:flex;gap:10px;margin-bottom:4px"><span style="font-size:10px;color:var(--orange)">🌅 ${d.sr}</span><span style="font-size:10px;color:var(--blue)">🌆 ${d.ss}</span><span style="font-size:10px;color:var(--t4)">☂ ${d.rain}%</span></div><div style="margin-bottom:3px">${badges}</div><div class="cday-note">${d.note}</div></div>`;
+  });
+}
+buildCal();
+
+// Build safety list
+function buildSafeList(){
+  const sl=document.getElementById('safeList');sl.innerHTML='';
+  DZONES.forEach(z=>{const col=z.risk===3?'#c0392b':'#e67e22';sl.innerHTML+=`<div class="sl-item"><div class="sl-dot" style="background:${col}88;border:1px solid ${col}"></div><div><div class="sl-nm">${z.name}</div><div class="sl-nt">${z.note}</div></div></div>`;});
+  DPOINTS.forEach(p=>{sl.innerHTML+=`<div class="sl-item"><div class="sl-dot" style="background:rgba(241,196,15,.6);clip-path:polygon(50% 0%,0% 100%,100% 100%)"></div><div><div class="sl-nm">${p.name}</div><div class="sl-nt">${p.note}</div></div></div>`;});
+}
+buildSafeList();
+
+// Build winery lists
+function buildWineList(){
+  const mkCard=(w,isM)=>{const col=isM?'#b07ab5':'#c9a96e';return`<div class="wm-card" onclick="panTo(${w.lat},${w.lng})"><div class="wm-ct"><span class="wm-ico2">${isM?'🛒':'🍷'}</span><span class="wm-nm">${w.name}</span><span class="wm-tp" style="background:${col}18;color:${col}">${isM?'市集':'酒庄'}</span></div><div class="wm-desc">${w.desc}</div><div class="wm-row"><span class="wm-hrs">⏰ ${w.hours}</span><span style="font-size:10px;color:var(--t4)">🚗 ${w.dist} · 💰 ${w.price}</span></div>${w.web?`<a class="wm-we" href="https://${w.web}" target="_blank" style="display:block;margin-top:4px">${w.web} ↗</a>`:''}</div>`;};
+  document.getElementById('wineConstantia').innerHTML=WINERIES.filter(w=>w.group==='constantia').map(w=>mkCard(w,false)).join('');
+  document.getElementById('wineStellenbosch').innerHTML=WINERIES.filter(w=>w.group==='stell').map(w=>mkCard(w,false)).join('');
+  document.getElementById('marketsList').innerHTML=MKTS.map(m=>mkCard(m,true)).join('');
+}
+buildWineList();
+
+// ── LEAFLET INIT ──
+let MAP, activeRoute=null, activeId=null, curSpot=null;
+let safetyLayers=[], wmLayers=[], loopLayers=[];
+let rpA=null, rpB=null, rpLine=null;
+let CL=0;
+
+const TILES={
+  0: ()=>L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd',attribution:'CartoDB'}),
+  1: ()=>L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'OpenTopoMap'}),
+  2: ()=>L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'ESRI'}),
+  3: ()=>L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}),
+  4: ()=>L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}),
+};
+let currentTile=null;
+
+window.addEventListener('load',()=>{
+  if(typeof L==='undefined'){document.getElementById('mapMsg').classList.add('show');return;}
+  initMap();
+});
+
+function initMap(){
+  MAP=L.map('lmap',{center:[-33.98,18.52],zoom:12,zoomControl:false,attributionControl:false});
+  L.control.zoom({position:'bottomright'}).addTo(MAP);
+  currentTile=TILES[0]().addTo(MAP);
+  
+  // Show message while tiles load, hide when first tile arrives
+  document.getElementById('mapMsg').classList.add('show');
+  currentTile.on('tileload',()=>document.getElementById('mapMsg').classList.remove('show'));
+  
+  // Westin marker
+  const wIco=L.divIcon({className:'',html:`<div style="width:28px;height:28px;border-radius:50%;background:#c9a96e;border:3px solid #050505;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 0 6px rgba(201,169,110,.2)">🏨</div>`,iconSize:[28,28],iconAnchor:[14,14]});
+  L.marker([-33.9157,18.4262],{icon:wIco}).addTo(MAP);
+  
+  // Spot markers
+  SP.forEach(s=>{
+    const c=CC[s.ck];
+    const must=s.must?`<div style="position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid #050505"></div>`:'';
+    const html=`<div style="position:relative;width:24px;height:24px"><div style="width:24px;height:24px;border-radius:50%;background:${c};border:3px solid #050505;box-shadow:0 0 0 3px ${c}40;cursor:pointer;transition:all .2s"></div>${must}</div>`;
+    const ico=L.divIcon({className:'',html,iconSize:[24,24],iconAnchor:[12,12]});
+    const m=L.marker([s.lat,s.lng],{icon:ico}).addTo(MAP);
+    m.bindPopup(`<div style="padding:10px 12px;background:var(--bg4,#1a1a1a);color:var(--t,#f0ede6)"><div style="font-weight:500;font-size:13px;margin-bottom:3px">${s.icon} ${s.name}</div><div style="font-size:11px;color:#888">${s.drive} · ${s.stay}</div></div>`,{className:'dark-popup',maxWidth:180});
+    m.on('click',()=>{m.closePopup();onSpot(s);});
+    s._mk=m;
+  });
+  
+  // Safety layers (not added yet)
+  DZONES.forEach(z=>{
+    const isH=z.risk===3;const col=isH?'#c0392b':'#e67e22';
+    const poly=L.polygon(z.pts,{color:col,weight:1.5,fillColor:col,fillOpacity:isH?.28:.2,dashArray:'6 3'});
+    poly.bindTooltip(`<strong>${z.name}</strong><br><small>${z.note}</small>`,{sticky:true,className:'dark-tooltip'});
+    safetyLayers.push(poly);
+  });
+  DPOINTS.forEach(p=>{
+    const ico=L.divIcon({className:'',html:`<div style="width:24px;height:24px;clip-path:polygon(50% 0%,0% 100%,100% 100%);background:rgba(241,196,15,0.9);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#3a2a00;padding-top:6px">!</div>`,iconSize:[24,24],iconAnchor:[12,22]});
+    const m=L.marker([p.lat,p.lng],{icon:ico});
+    m.bindTooltip(`<strong>${p.name}</strong><br><small>${p.note}</small>`,{sticky:true,className:'dark-tooltip'});
+    safetyLayers.push(m);
+  });
+  
+  // Winery/market layers (not added yet)
+  [...WINERIES,...MKTS].forEach(w=>{
+    const isM=w.type==='market';const col=isM?'#b07ab5':'#c9a96e';
+    const html=`<div style="width:22px;height:22px;border-radius:50%;background:${col}44;border:2px solid ${col};display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;transition:all .15s">${isM?'🛒':'🍷'}</div>`;
+    const ico=L.divIcon({className:'',html,iconSize:[22,22],iconAnchor:[11,11]});
+    const m=L.marker([w.lat,w.lng],{icon:ico});
+    m.bindPopup(`<div style="padding:10px 12px"><div style="font-weight:500;font-size:13px;margin-bottom:3px">${isM?'🛒':'🍷'} ${w.name}</div><div style="font-size:11px;color:#888;margin-bottom:5px">${w.desc}</div><div style="font-size:10px;color:#666">⏰ ${w.hours}</div><div style="font-size:10px;color:#666">💰 ${w.price} · 🚗 ${w.dist}</div></div>`,{className:'dark-popup',maxWidth:200});
+    m.on('click',()=>{setTimeout(()=>showWMInfo(w),100);});
+    wmLayers.push(m);
+  });
+}
+
+function animateLine(polyline){
+  const path=polyline._path;
+  if(!path)return;
+  const len=path.getTotalLength();
+  path.style.strokeDasharray=len;
+  path.style.strokeDashoffset=len;
+  path.style.transition='stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)';
+  requestAnimationFrame(()=>setTimeout(()=>{path.style.strokeDashoffset=0;},20));
+}
+
+function panTo(lat,lng){if(MAP)MAP.panTo([lat,lng],{animate:true});}
+
+function onSpot(s){
+  if(activeId===s.id){closeDr();return;}
+  activeId=s.id;curSpot=s;
+  if(activeRoute){MAP.removeLayer(activeRoute);activeRoute=null;}
+  const pts=RT[s.id]||[[-33.9157,18.4262],[s.lat,s.lng]];
+  activeRoute=L.polyline(pts,{color:CC[s.ck],weight:3,dashArray:'9 5',opacity:.9}).addTo(MAP);
+  animateLine(activeRoute);
+  MAP.fitBounds(L.latLngBounds([[-33.9157,18.4262],[s.lat,s.lng]]).pad(.25),{animate:true,duration:.8});
+  openDr(s);
+}
+
+function openDr(s){
+  const c=CC[s.ck];
+  const df=document.getElementById('df');
+  if(s.must){df.style.cssText=`background:${c}22;color:${c};border:1px solid ${c}44;font-size:10px;padding:3px 9px;border-radius:4px;letter-spacing:.06em;display:inline-block;margin-bottom:10px`;df.textContent='✦ 必去景点';}
+  else df.style.display='none';
+  document.getElementById('dcat').style.color=c;document.getElementById('dcat').textContent=s.cat.toUpperCase();
+  document.getElementById('dname').textContent=s.name;document.getElementById('dsub').textContent=s.sub;
+  ['dd1','dd2'].forEach(id=>{const el=document.getElementById(id);el.style.borderColor=c;el.style.background=c+'33';});
+  document.getElementById('ddrv').textContent=s.drive;document.getElementById('dsta').textContent=s.stay;
+  document.getElementById('ddist').textContent=s.dist;document.getElementById('dbest').textContent=s.best;
+  document.getElementById('dnote').textContent=s.note;
+  const dw=document.getElementById('dWeb'),dwl=document.getElementById('dWebLbl');
+  if(s.web){dw.href=s.web;dw.style.display='flex';dwl.textContent=s.web.replace('https://','').split('/')[0];}
+  else dw.style.display='none';
+  updateRpBtns();
+  document.getElementById('drawer').classList.add('open');
+}
+
+function closeDr(){
+  document.getElementById('drawer').classList.remove('open');
+  if(activeRoute){MAP.removeLayer(activeRoute);activeRoute=null;}
+  activeId=null;curSpot=null;
+}
+
+function showWMInfo(w){
+  const isM=w.type==='market';const col=isM?'#b07ab5':'#c9a96e';
+  const df=document.getElementById('df');
+  df.style.cssText=`background:${col}22;color:${col};border:1px solid ${col}44;font-size:10px;padding:3px 9px;border-radius:4px;letter-spacing:.06em;display:inline-block;margin-bottom:10px`;
+  df.textContent=isM?'🛒 市集':'🍷 酒庄';
+  document.getElementById('dcat').style.color=col;document.getElementById('dcat').textContent=(isM?'市集':'酒庄').toUpperCase();
+  document.getElementById('dname').textContent=w.name;document.getElementById('dsub').textContent=w.hours;
+  ['dd1','dd2'].forEach(id=>{const el=document.getElementById(id);el.style.borderColor=col;el.style.background=col+'33';});
+  document.getElementById('ddrv').textContent=w.dist;document.getElementById('dsta').textContent='—';
+  document.getElementById('ddist').textContent='—';document.getElementById('dbest').textContent=w.price;
+  document.getElementById('dnote').textContent=w.desc;
+  const dw=document.getElementById('dWeb'),dwl=document.getElementById('dWebLbl');
+  if(w.web){dw.href='https://'+w.web;dw.style.display='flex';dwl.textContent=w.web;}
+  else dw.style.display='none';
+  curSpot={name:w.name,lat:w.lat,lng:w.lng};updateRpBtns();
+  document.getElementById('drawer').classList.add('open');
+}
+
+// ── LAYERS ──
+function setLayer(n){
+  CL=n;
+  [0,1,2,3,4].forEach(i=>document.getElementById('b'+i).classList.toggle('on',i===n));
+  document.getElementById('climate').classList.toggle('show',n===1);
+  document.getElementById('safePanel').classList.toggle('show',n===3);
+  document.getElementById('winePanel').classList.toggle('show',n===4);
+  document.getElementById('rl').classList.toggle('show',n===2);
+  if(!MAP)return;
+  if(currentTile){MAP.removeLayer(currentTile);}
+  currentTile=TILES[n]().addTo(MAP);
+  document.getElementById('mapMsg').classList.add('show');
+  currentTile.on('tileload',()=>document.getElementById('mapMsg').classList.remove('show'));
+  // Safety
+  safetyLayers.forEach(l=>{if(n===3){if(!MAP.hasLayer(l))l.addTo(MAP);}else{if(MAP.hasLayer(l))MAP.removeLayer(l);}});
+  // Winery/market
+  wmLayers.forEach(l=>{if(n===4){if(!MAP.hasLayer(l))l.addTo(MAP);}else{if(MAP.hasLayer(l))MAP.removeLayer(l);}});
+  // Loop
+  loopLayers.forEach(l=>MAP.removeLayer(l));loopLayers=[];
+  if(n===2)drawLoop();
+}
+
+function drawLoop(){
+  const loop=L.polyline(LOOP,{color:'#c9a96e',weight:4,opacity:.9}).addTo(MAP);
+  animateLine(loop);loopLayers.push(loop);
+  [[3,'1'],[6,'2'],[7,'3'],[5,'4'],[8,'5']].forEach(([id,num])=>{
+    const s=SP[id];const c=CC[s.ck];
+    const html=`<div style="width:26px;height:26px;border-radius:50%;background:${c};border:3px solid #050505;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#050505;font-family:'DM Sans',sans-serif">${num}</div>`;
+    const ico=L.divIcon({className:'',html,iconSize:[26,26],iconAnchor:[13,13]});
+    const m=L.marker([s.lat,s.lng],{icon:ico}).addTo(MAP);loopLayers.push(m);
+  });
+  MAP.fitBounds(L.latLngBounds(LOOP).pad(.08),{animate:true});
+  const rs=document.getElementById('rlstops');rs.innerHTML='';
+  const mk=(l,c,n)=>{const d=document.createElement('div');d.className='rlstop';d.innerHTML=`<div class="rlnum" style="background:${c}22;border:1px solid ${c}44;color:${c}">${n}</div><div class="rlname">${l}</div>`;return d;};
+  const ar=()=>{const a=document.createElement('div');a.className='rlarr';a.textContent='→';return a;};
+  [{l:'Westin',c:'#c9a96e',n:'W'},{l:'植物园',c:'#6eab7a',n:'1'},{l:'企鹅🐧',c:'#7eb0d4',n:'2'},{l:'好望角',c:'#7eb0d4',n:'3'},{l:"Chapman's",c:'#6eab7a',n:'4'},{l:'Camps Bay',c:'#e2a96e',n:'5'},{l:'Westin',c:'#c9a96e',n:'W'}].forEach((s,i,a)=>{rs.appendChild(mk(s.l,s.c,s.n));if(i<a.length-1)rs.appendChild(ar());});
+}
+
+// ── ROUTE PLANNER ──
+function hav(lat1,lng1,lat2,lng2){const R=6371,dL=(lat2-lat1)*Math.PI/180,dN=(lng2-lng1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dN/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
+function tripEst(km){const sp=km<3?22:km<15?32:52;const t=Math.round(km/sp*60)+5;const c=Math.round(25+km*11);const w=km<4?Math.round(km/5*60):null;return{t,c,w};}
+function setRpA(){if(!curSpot)return;rpA={name:curSpot.name,lat:curSpot.lat,lng:curSpot.lng};updateRpBtns();if(rpA&&rpB)computeRp();}
+function setRpB(){if(!curSpot)return;rpB={name:curSpot.name,lat:curSpot.lat,lng:curSpot.lng};updateRpBtns();if(rpA&&rpB)computeRp();}
+function updateRpBtns(){
+  const a=document.getElementById('rpABtn'),b=document.getElementById('rpBBtn');
+  if(a)a.classList.toggle('active',!!(rpA&&curSpot&&rpA.name===curSpot.name));
+  if(b)b.classList.toggle('active',!!(rpB&&curSpot&&rpB.name===curSpot.name));
+}
+function computeRp(){
+  const km=hav(rpA.lat,rpA.lng,rpB.lat,rpB.lng);
+  const {t,c,w}=tripEst(km);
+  document.getElementById('rpANm').textContent=rpA.name;
+  document.getElementById('rpBNm').textContent=rpB.name;
+  document.getElementById('rpDrT').textContent=t+'分钟';
+  document.getElementById('rpDistV').textContent=km.toFixed(1)+' km';
+  document.getElementById('rpCostV').textContent='R'+(c-10)+'–'+c;
+  document.getElementById('rpWalkT').textContent=w?`🚶 步行约 ${w} 分钟`:'（步行距离过远）';
+  if(rpLine&&MAP){MAP.removeLayer(rpLine);rpLine=null;}
+  if(MAP){rpLine=L.polyline([[rpA.lat,rpA.lng],[rpB.lat,rpB.lng]],{color:'rgba(126,176,212,0.9)',weight:2.5,dashArray:'6 4'}).addTo(MAP);animateLine(rpLine);}
+  document.getElementById('rpPanel').classList.add('show');
+}
+function clearRp(){rpA=null;rpB=null;if(rpLine&&MAP){MAP.removeLayer(rpLine);rpLine=null;}document.getElementById('rpPanel').classList.remove('show');updateRpBtns();}
+
+// ── SEARCH ──
+const allCC={...CC,culture:'#a78bca',food:'#e8a04c',wine:'#b07ab5',nature2:'#6eab7a'};
+const ASRCH=[
+  ...SP.map(s=>({...s,isSpot:true,catKey:s.ck,sub:s.sub,stxt:[s.name,s.sub,s.cat,s.note||'',s.drive].join(' ')})),
+  ...WINERIES.map(w=>({...w,isSpot:false,isWM:true,catKey:'wine',icon:'🍷',cat:'酒庄',sub:w.desc.slice(0,30),stxt:[w.name,w.desc,'酒庄 winery'].join(' ')})),
+  ...MKTS.map(m=>({...m,isSpot:false,isWM:true,catKey:'market',icon:'🛒',cat:'市集',sub:m.desc.slice(0,30),stxt:[m.name,m.desc,'市集 market'].join(' ')})),
+];
+const siEl=document.getElementById('si'),srEl=document.getElementById('sr'),sclrEl=document.getElementById('sclr');
+siEl.addEventListener('input',e=>{
+  const q=e.target.value.trim();sclrEl.style.display=q?'block':'none';
+  if(!q){srEl.classList.remove('show');return;}
+  const res=ASRCH.filter(it=>it.stxt.toLowerCase().includes(q.toLowerCase())).slice(0,8);
+  if(!res.length){srEl.innerHTML=`<div class="sempty">未找到"${q}"相关内容</div>`;}
+  else{srEl.innerHTML=`<div class="srhd">找到 ${res.length} 个结果</div>`+res.map(it=>{const c=allCC[it.catKey||it.ck]||'#888';return`<div class="sri" onclick="selRes('${it.isSpot?it.id:it.isWM?'wm_'+it.id:'e_'+it.name}',${!!it.isSpot},${!!it.isWM})"><span style="font-size:15px;flex-shrink:0">${it.icon}</span><div style="flex:1;min-width:0"><div class="sri-n">${it.name}</div><div class="sri-s">${it.sub||''}</div></div><span class="sri-b" style="background:${c}18;color:${c}">${it.cat}</span></div>`;}).join('');}
+  srEl.classList.add('show');
+});
+siEl.addEventListener('keydown',e=>{if(e.key==='Escape')clrS();});
+document.addEventListener('click',e=>{if(!e.target.closest('.sw'))srEl.classList.remove('show');});
+function selRes(id,isSpot,isWM){
+  clrS();
+  if(isSpot){const s=SP.find(x=>String(x.id)===String(id));if(!s)return;if(document.getElementById('ro').classList.contains('show'))togRec();if(CL===3||CL===4)setLayer(0);setTimeout(()=>onSpot(s),300);}
+  else if(isWM){const wid=id.replace('wm_','');const w=[...WINERIES,...MKTS].find(x=>x.id===wid);if(!w)return;if(CL!==4)setLayer(4);setTimeout(()=>showWMInfo(w),300);}
+}
+function clrS(){siEl.value='';sclrEl.style.display='none';srEl.classList.remove('show');}
+
+// ── RECOMMENDATIONS ──
+const EX=[
+  {name:'Bo-Kaap',sub:'开普马来彩色街区',icon:'🏘️',cat:'文化历史',ck:'culture',drive:'步行 10 分',dist:'0.8 km',stay:'1 小时',best:'清晨',tags:['免费','步行可达'],why:'6月人少，清早光线最美。',tip:'06:30-09:00 几乎无游客。',gmap:'https://maps.google.com/?q=Bo-Kaap'},
+  {name:'Hermanus 看鲸',sub:'南露脊鲸高峰季 🐳',icon:'🐳',cat:'自然体验',ck:'nature2',drive:'同 Creation Wines',dist:'115 km',stay:'1–2 小时',best:'全天',tags:['6月峰值','免费自观'],why:'6月是 Hermanus 最佳观鲸月，Creation 当天顺道。',tip:'Hermanus Cliff Path 免费。',gmap:'https://maps.google.com/?q=Hermanus+Cliff+Path'},
+  {name:'Old Biscuit Mill',sub:'创意集市·周六限定',icon:'🛒',cat:'市集美食',ck:'food',drive:'约 10 分',dist:'4 km',stay:'1–2 小时',best:'Sat 09:00–14:00',tags:['仅周六'],why:'6/7(周六)佳慧可与 OZCF 同天逛！',tip:'仅周六 9am–2pm。',gmap:'https://maps.google.com/?q=Old+Biscuit+Mill'},
+];
+let RF='all';
+const RFT=[{k:'all',l:'全部'},{k:'must',l:'✦ 必去'},{k:'6月',l:'📅 6月'},{k:'culture',l:'文化'},{k:'food',l:'美食'},{k:'beach',l:'海滩'},{k:'wine',l:'酒庄'}];
+const CKMAP2={city:'food',nature:'culture',peninsula:'beach',beach:'beach',animals:'wine',market:'food'};
+function togRec(){const ov=document.getElementById('ro'),btn=document.getElementById('rbtn');const sh=ov.classList.toggle('show');btn.classList.toggle('on',sh);if(sh)renRec();}
+function renRec(){
+  const fb=document.getElementById('rof');fb.innerHTML='';RFT.forEach(f=>{const b=document.createElement('button');b.className='rf'+(RF===f.k?' on':'');b.textContent=f.l;b.onclick=()=>{RF=f.k;renRec();};fb.appendChild(b);});
+  const body=document.getElementById('rob2');body.innerHTML='';
+  if(RF==='all'||RF==='6月'){body.innerHTML+=`<div class="rsec"><div class="rseclbl">📅 6月行程日历</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">${CAL.map(d=>{const rain=d.rain>=60,good=d.rain<30;const bc=rain?'rgba(126,176,212,.08)':good?'rgba(110,171,122,.08)':'rgba(255,255,255,.03)';const brd=rain?'rgba(126,176,212,.2)':good?'rgba(110,171,122,.2)':'rgba(255,255,255,.07)';return`<div style="background:${bc};border:1px solid ${brd};border-radius:10px;padding:11px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:4px"><span style="font-size:14px">${d.wx}</span><strong style="font-size:12px">${d.d} ${d.wd}</strong><span style="font-size:11px;color:#888;flex:1">${d.lo}–${d.hi}°C</span></div><div style="font-size:10px;color:#666;margin-bottom:4px">🌅 ${d.sr} · 🌆 ${d.ss} · ☂ ${d.rain}%</div>${d.badges.map(b=>`<span style="display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;background:${b.c}22;color:${b.c};border:1px solid ${b.c}33;margin-right:3px">${b.t}</span>`).join('')}<div style="font-size:11px;color:#777;line-height:1.5;margin-top:3px">${d.note}</div></div>`;}).join('')}</div></div>`;}
+  const must=SP.filter(s=>s.must&&(RF==='all'||RF==='must'||RF==='6月'));
+  const map2=SP.filter(s=>!s.must&&RF!=='must'&&RF!=='6月'&&(RF==='all'||CKMAP2[s.ck]===RF));
+  const ext=EX.filter(e=>RF!=='must'&&(RF==='all'||RF==='6月'||e.ck===RF||(e.ck==='nature2'&&RF==='culture')));
+  const sc2=s=>{const c=CC[s.ck]||'#888';return`<div class="rcard"><div class="rctop" style="background:${c}"></div><div class="rcbody"><div class="rcrow1"><span class="rcicon">${s.icon}</span><div style="flex:1;min-width:0"><div class="rcname">${s.name}</div><div class="rcsub">${s.sub}</div></div>${s.must?`<span class="rcmust" style="background:${c}22;color:${c};border:1px solid ${c}44">必去</span>`:''}</div><div class="rcwhy">${s.note?.slice(0,150)||''}</div><div class="rctags">${[s.cat,s.drive,s.stay].map(t=>`<span class="rctag">${t}</span>`).join('')}</div><div class="rcmeta"><div class="rcmi"><div class="rcml">建议时段</div><div class="rcmv">${s.best}</div></div><div class="rcmi"><div class="rcml">距离</div><div class="rcmv">${s.dist} km</div></div></div></div><div class="rcfoot"><button class="rcmbtn" onclick="gotoSpot(${s.id})">地图查看 →</button>${s.web?`<a class="rcext" href="${s.web}" target="_blank">官网↗</a>`:''}</div></div>`;};
+  const ec2=e=>{const c=allCC[e.ck]||'#888';return`<div class="rcard"><div class="rctop" style="background:${c}"></div><div class="rcbody"><div class="rcrow1"><span class="rcicon">${e.icon}</span><div style="flex:1;min-width:0"><div class="rcname">${e.name}</div><div class="rcsub">${e.sub}</div></div></div><div class="rcwhy">${e.why}</div><div class="rctags">${e.tags.map(t=>`<span class="rctag">${t}</span>`).join('')}</div><div class="rctip">💡 ${e.tip}</div><div class="rcmeta"><div class="rcmi"><div class="rcml">最佳时段</div><div class="rcmv">${e.best}</div></div><div class="rcmi"><div class="rcml">打车</div><div class="rcmv">${e.drive}</div></div></div></div><div class="rcfoot"><a class="rcmbtn" style="text-decoration:none;text-align:center" href="${e.gmap}" target="_blank">Google Maps ↗</a></div></div>`;};
+  if(must.length)body.innerHTML+=`<div class="rsec"><div class="rseclbl">必去清单</div><div class="rgrid">${must.map(sc2).join('')}</div></div>`;
+  if(map2.length)body.innerHTML+=`<div class="rsec"><div class="rseclbl">地图景点</div><div class="rgrid">${map2.map(sc2).join('')}</div></div>`;
+  if(ext.length)body.innerHTML+=`<div class="rsec"><div class="rseclbl">本地推荐</div><div class="rgrid">${ext.map(ec2).join('')}</div></div>`;
+}
+function gotoSpot(id){togRec();setTimeout(()=>{const s=SP.find(x=>x.id===id);if(!s)return;if(CL!==0)setLayer(0);setTimeout(()=>onSpot(s),300);},200);}
+</script>
+</body>
+</html>

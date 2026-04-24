@@ -1230,7 +1230,6 @@ function computeRecommendations(timeVal,dateVal,fromVal,moods,dur,extra){
   if(isAfterSunset&&s.best.includes('14:'))score-=15;
 
   const returnTime = nowMins + totalMins;
-
   return{s,score,adjustedDrive,totalMins,returnTime};
 
   // Sort and pick top 3, no duplicates in same category

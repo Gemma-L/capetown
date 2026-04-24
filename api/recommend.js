@@ -31,50 +31,53 @@ export default async function handler(req, res) {
       language = ""
     } = req.body || {};
 
+    const userText = `${moods} ${extra}`.trim();
     const isEnglish =
       language === "en" ||
-      /[a-zA-Z]{4,}/.test(extra) ||
-      /[a-zA-Z]{4,}/.test(moods);
+      /^[\x00-\x7F]*$/.test(userText) && /[a-zA-Z]{3,}/.test(userText);
 
     const outputLang = isEnglish ? "English" : "Chinese";
 
     const systemPrompt = `
 You are a smart Cape Town travel advisor.
-You must reply only in valid JSON.
-No markdown. No explanation outside JSON.
+
+Return ONLY valid JSON.
+Do NOT use markdown.
+Do NOT add explanations outside JSON.
 The response language must be ${outputLang}.
 `;
 
     const userMessage = `
-Current travel context:
+Current context:
 - Current time: ${time}
 - Date: ${date}
 - Departure point: ${from}
 - Available duration: ${duration}
-- User preferences / moods: ${moods || "not specified"}
+- User preferences: ${moods || "not specified"}
 - Extra notes: ${extra || "none"}
-- Cape Town winter sunset is around 17:43.
+- Cape Town winter sunset: around 17:43
 
 Available places:
 ${prompt}
 
-Rules:
-1. Recommend based on current time and available duration.
-2. If it is after 17:43, avoid outdoor mountain/beach activities and suggest safer indoor/evening options.
-3. If it is close to sunset, prioritize short sunset-friendly options.
-4. Keep the tone friendly, smart, and practical.
-5. Give specific timing.
-6. Return 2–3 suggestions only.
-7. If the user writes in Chinese, reply in Chinese. If the user writes in English, reply in English.
+Recommendation rules:
+1. Recommend according to current time and available duration.
+2. After 17:43, avoid outdoor mountain, beach, peninsula, and remote activities.
+3. After sunset, prioritize safer evening options such as V&A Waterfront, The Watershed, food markets, or nearby indoor/easy activities.
+4. If it is close to sunset, recommend only short sunset-friendly options.
+5. Give 2–3 suggestions.
+6. Be friendly and practical.
+7. Give concrete timing.
+8. Match the output language: ${outputLang}.
 
-Return exactly this JSON format:
+Return exactly this JSON structure:
 {
-  "intro": "one short sentence",
+  "intro": "short summary sentence",
   "suggestions": [
     {
       "name": "place name",
       "icon": "emoji",
-      "reason": "2-3 friendly sentences explaining why this fits now",
+      "reason": "2-3 friendly sentences",
       "schedule": "specific time plan",
       "tip": "one practical tip",
       "spotId": 0,
@@ -94,7 +97,7 @@ Return exactly this JSON format:
       body: JSON.stringify({
         model: "claude-3-5-sonnet-latest",
         max_tokens: 1600,
-        temperature: 0.7,
+        temperature: 0.5,
         system: systemPrompt,
         messages: [
           {
@@ -105,31 +108,43 @@ Return exactly this JSON format:
       })
     });
 
+    const dataText = await anthropicRes.text();
+
     if (!anthropicRes.ok) {
-      const detail = await anthropicRes.text();
       return res.status(502).json({
         error: "Anthropic API request failed.",
         status: anthropicRes.status,
-        detail
+        detail: dataText
       });
     }
 
-    const data = await anthropicRes.json();
+    let data;
+    try {
+      data = JSON.parse(dataText);
+    } catch {
+      return res.status(502).json({
+        error: "Anthropic returned invalid JSON response.",
+        raw: dataText
+      });
+    }
+
     const raw = data.content?.[0]?.text || "";
 
     const cleaned = raw
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```$/i, "")
       .trim();
 
     try {
       const parsed = JSON.parse(cleaned);
       return res.status(200).json(parsed);
-    } catch (e) {
+    } catch {
       return res.status(200).json({
-        intro: isEnglish
-          ? "I generated a recommendation, but the format needs checking."
-          : "我生成了建议，但格式需要检查。",
+        intro:
+          outputLang === "English"
+            ? "I generated a recommendation, but the format needs checking."
+            : "我生成了建议，但格式需要检查。",
         suggestions: [],
         raw,
         parseError: true

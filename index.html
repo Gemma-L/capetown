@@ -1019,7 +1019,13 @@ document.addEventListener('click', e=>{
   if(chip){ chip.classList.toggle('on'); return; }
   const dur = e.target.closest('.ai-dur-btn');
   if(dur){
-    document.querySelectorAll('.ai-dur-btn').forEach(x=>x.classList.remove('on'));
+    // people buttons vs duration buttons — check parent id
+    const parentId = dur.closest('[id]')?.id;
+    if(parentId === 'aiPeopleBtns'){
+      document.querySelectorAll('#aiPeopleBtns .ai-dur-btn').forEach(x=>x.classList.remove('on'));
+    } else {
+      document.querySelectorAll('#aiDurBtns .ai-dur-btn').forEach(x=>x.classList.remove('on'));
+    }
     dur.classList.add('on');
   }
 });
@@ -1065,7 +1071,8 @@ async function runAI(){
   const dateVal=document.getElementById('aiDate').value;
   const fromVal=document.getElementById('aiFrom').value;
   const moods=[...document.querySelectorAll('.ai-chip.on')].map(c=>c.dataset.mood);
-  const dur=document.querySelector('.ai-dur-btn.on')?.dataset.dur||'2-3小时';
+  const dur=document.querySelector('#aiDurBtns .ai-dur-btn.on')?.dataset.dur||'2-3小时';
+  const people=document.querySelector('#aiPeopleBtns .ai-dur-btn.on')?.dataset.people||'3-4人';
   const extra=document.getElementById('aiExtra').value.trim();
 
   // Show loading
@@ -1102,7 +1109,7 @@ async function runAI(){
       body:JSON.stringify({
         time:timeVal, date:dateVal, from:fromVal,
         moods:moods.join('、')||'随意',
-        duration:dur, extra:extra||'无',
+        duration:dur, people:people, extra:extra||'无',
         prompt:spotContext
       })
     });
@@ -1185,8 +1192,8 @@ function computeRecommendations(timeVal,dateVal,fromVal,moods,dur,extra){
     else if(totalMins<=availMins)score+=20;
 
     // Must be home before sunset (with 15min buffer) — only matters if sun is still up
-    const returnTime = nowMins + totalMins;
     if(!isAfterSunset){
+      const returnTime=nowMins+totalMins;
       if(returnTime>sunsetMins+15){score-=40;} // can't make it before dark
       else if(returnTime<sunsetMins-30){score+=15;} // comfortable buffer
     }
@@ -1229,7 +1236,7 @@ function computeRecommendations(timeVal,dateVal,fromVal,moods,dur,extra){
     if(isAfterSunset&&s.best.includes('08:'))score-=20;
     if(isAfterSunset&&s.best.includes('14:'))score-=15;
 
-    return {s, score, adjustedDrive, totalMins, returnTime};
+    return{s,score,adjustedDrive,totalMins,returnTime};
   });
 
   // Sort and pick top 3, no duplicates in same category
@@ -1299,25 +1306,24 @@ function buildReason(s,item,ctx){
 }
 
 function buildTip(s,ctx){
-  const { isEvening, isAfterSunset, remainDaylight, ozcfOpen } = ctx;
-  const sunsetMins = 17 * 60 + 43;
-  const isSunset = !isAfterSunset && remainDaylight > 0 && remainDaylight <= 90;
-  const sunsetArrival = `${Math.floor((sunsetMins - 20) / 60).toString().padStart(2,'0')}:${((sunsetMins - 20) % 60).toString().padStart(2,'0')}`;
-  const tips = {
-    0: '进去前先逛一圈摸清楚哪家摊位最多人排队，通常就是最好吃的那家！',
-    1: '买票时问一下今天 Red Route 和 Blue Route 各几点末班，末班约下午5点，别坐过站。',
-    2: '⚠️ 出发前必查 tablemountain.net，6月关闭频率很高，别白跑一趟。',
-    3: '带张野餐垫！草坪可以坐下来对着桌山发呆，是开普敦最治愈的体验之一。',
-    4: isAfterSunset ? '夜间开车上山，停好车别走远，建议两人以上同行，注意安全。' : (isEvening || isSunset ? `建议 ${sunsetArrival} 前到位，抢个好机位。停车场旁边有人卖热巧克力，日落+热饮 combo 完美！` : '建议17:15前抵达，6月日落仅17:43，不要去晚了。'),
-    5: '停车场都是免费的，想停就停，不用抢。最美的观景点在 km6 附近。',
-    6: '早上8点一开门就进，企鹅最活跃、游客最少。门票网上提前买省排队。',
-    7: '保护区里的狒狒会开车门！锁好车窗，食物不要露出来。',
-    8: isAfterSunset ? 'Camps Bay 餐厅晚上很热闹，但注意 Uber 叫车回程，夜间路上不要单独走。' : '下午4点后海岸餐厅开始有气氛，找个露台座位最享受。',
-    9: '去 Creation 酒庄顺路停一下，喂长颈鹿不用预约，30分钟搞定。',
-    10: '⚠️ Creation Wines 必须官网提前预订！不预订就会吃闭门羹。订完顺道去 Hermanus 看鲸鱼。',
-    11: ozcfOpen ? 'OZCF 9点后人会变多，建议一开门就去，热门摊位卖完就没了。' : '下次周六周日来，OZCF 市集超好逛！'
+  const{isRainy,isEvening,isAfterSunset,calDay,remainDaylight,ozcfOpen,isGroup}=ctx;
+  const tips={
+    0:'进去前先逛一圈摸清楚哪家摊位最多人排队，通常就是最好吃的那家！',
+    1:'买票时问一下今天 Red Route 和 Blue Route 各几点末班，末班约下午5点，别坐过站。',
+    2:'⚠️ 出发前必查 tablemountain.net，6月关闭频率很高，别白跑一趟。',
+    3:'带张野餐垫！草坪可以坐下来对着桌山发呆，是开普敦最治愈的体验之一。',
+    4:isAfterSunset?'夜间开车上山，停好车别走远，建议两人以上同行，注意安全。':isEvening||isSunset?`建议 ${Math.max(16,Math.floor((sunsetMins-20)/60)).toString().padStart(2,'0')}:${((sunsetMins-20)%60).toString().padStart(2,'0')} 前到位，抢个好机位。停车场旁边有人卖热巧克力，日落+热饮 combo 完美！`:'建议17:15前抵达，6月日落仅17:43，不要去晚了。',
+    5:'停车场都是免费的，想停就停，不用抢。最美的观景点在 km6 附近。',
+    6:'早上8点一开门就进，企鹅最活跃、游客最少。门票网上提前买省排队。',
+    7:'保护区里的狒狒会开车门！锁好车窗，食物不要露出来。',
+    8:isAfterSunset?'Camps Bay 餐厅晚上很热闹，但注意 Uber 叫车回程，夜间路上不要单独走。':'下午4点后海岸餐厅开始有气氛，找个露台座位最享受。',
+    9:'去 Creation 酒庄顺路停一下，喂长颈鹿不用预约，30分钟搞定。',
+    10:'⚠️ Creation Wines 必须官网提前预订！不预订就会吃闭门羹。订完顺道去 Hermanus 看鲸鱼。',
+    11:ozcfOpen?'OZCF 9点后人会变多，建议一开门就去，热门摊位卖完就没了。':'下次周六周日来，OZCF 市集超好逛！',
   };
-  return tips[s.id] || `别忘了 ${s.best} 是最佳时段，现在去刚刚好！`;
+  // For Signal Hill define sunsetMins in scope
+  const sunsetMins=17*60+43;const isSunset=!isAfterSunset&&(remainDaylight>0&&remainDaylight<=90);
+  return tips[s.id]||`别忘了 ${s.best} 是最佳时段，现在去刚刚好！`;
 }
 
 function renderAIResult(data,timeVal,dateVal,isClaude){
@@ -1420,8 +1426,18 @@ function aiGoSpot(id){
         </div>
       </div>
       <div class="ai-section">
+        <div class="ai-label">👥 你们有几个人？</div>
+        <div class="ai-dur-row" id="aiPeopleBtns">
+          <span class="ai-dur-btn" data-people="1人">1 人</span>
+          <span class="ai-dur-btn" data-people="2人">2 人</span>
+          <span class="ai-dur-btn on" data-people="3-4人">3–4 人</span>
+          <span class="ai-dur-btn" data-people="5-6人">5–6 人</span>
+          <span class="ai-dur-btn" data-people="6人以上">6+ 人</span>
+        </div>
+      </div>
+      <div class="ai-section">
         <div class="ai-label">💬 还有什么补充？（选填）</div>
-        <textarea id="aiExtra" style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--b2);border-radius:9px;padding:10px 12px;font-size:12px;color:var(--t);font-family:inherit;outline:none;resize:none;height:60px;line-height:1.6" placeholder="比如：我们六个人，有人怕冷，想找个室内活动…"></textarea>
+        <textarea id="aiExtra" style="width:100%;background:rgba(255,255,255,.05);border:1px solid var(--b2);border-radius:9px;padding:10px 12px;font-size:12px;color:var(--t);font-family:inherit;outline:none;resize:none;height:60px;line-height:1.6" placeholder="比如：有人怕冷、想找吃的、第一次来开普敦…"></textarea>
       </div>
       <button class="ai-go" id="aiGoBtn" onclick="runAI()">✨ 帮我推荐！</button>
     </div>
